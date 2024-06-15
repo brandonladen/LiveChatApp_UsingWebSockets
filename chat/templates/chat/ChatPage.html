@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet"/>
+    <!-- MDB -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.3.1/mdb.min.css" rel="stylesheet"/>
+
+    <!-- Your custom CSS -->
+    <style>
+        #chat1 .form-outline .form-control~.form-notch div {
+            pointer-events: none;
+            border: 1px solid;
+            border-color: #eee;
+            box-sizing: border-box;
+            background: transparent;
+        }
+        
+        #chat1 .form-outline .form-control~.form-notch .form-notch-leading {
+            left: 0;
+            top: 0;
+            height: 100%;
+            border-right: none;
+            border-radius: .65rem 0 0 .65rem;
+        }
+        
+        #chat1 .form-outline .form-control~.form-notch .form-notch-middle {
+            flex: 0 0 auto;
+            max-width: calc(100% - 1rem);
+            height: 100%;
+            border-right: none;
+            border-left: none;
+        }
+        
+        #chat1 .form-outline .form-control~.form-notch .form-notch-trailing {
+            flex-grow: 1;
+            height: 100%;
+            border-left: none;
+            border-radius: 0 .65rem .65rem 0;
+        }
+        
+        #chat1 .form-outline .form-control:focus~.form-notch .form-notch-leading {
+            border-top: 0.125rem solid #39c0ed;
+            border-bottom: 0.125rem solid #39c0ed;
+            border-left: 0.125rem solid #39c0ed;
+        }
+        
+        #chat1 .form-outline .form-control:focus~.form-notch .form-notch-leading,
+        #chat1 .form-outline .form-control.active~.form-notch .form-notch-leading {
+            border-right: none;
+            transition: all 0.2s linear;
+        }
+        
+        #chat1 .form-outline .form-control:focus~.form-notch .form-notch-middle {
+            border-bottom: 0.125rem solid;
+            border-color: #39c0ed;
+        }
+        
+        #chat1 .form-outline .form-control:focus~.form-notch .form-notch-middle,
+        #chat1 .form-outline .form-control.active~.form-notch .form-notch-middle {
+            border-top: none;
+            border-right: none;
+            border-left: none;
+            transition: all 0.2s linear;
+        }
+        
+        #chat1 .form-outline .form-control:focus~.form-notch .form-notch-trailing {
+            border-top: 0.125rem solid #39c0ed;
+            border-bottom: 0.125rem solid #39c0ed;
+            border-right: 0.125rem solid #39c0ed;
+        }
+        
+        #chat1 .form-outline .form-control:focus~.form-notch .form-notch-trailing,
+        #chat1 .form-outline .form-control.active~.form-notch .form-notch-trailing {
+            border-left: none;
+            transition: all 0.2s linear;
+        }
+        
+        #chat1 .form-outline .form-control:focus~.form-label {
+            color: #39c0ed;
+        }
+        
+        #chat1 .form-outline .form-control~.form-label {
+            color: #bfbfbf;
+        }
+        
+        .message-container {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+        
+        .message-container.left {
+            justify-content: flex-start;
+        }
+        
+        .message-container.right {
+            justify-content: flex-end;
+        }
+        
+        .message-bubble {
+            max-width: 60%;
+            padding: 1rem;
+            border-radius: 1rem;
+        }
+        
+        .message-bubble.left {
+            background-color: rgba(57, 192, 237, 0.2);
+        }
+        
+        .message-bubble.right {
+            background-color: #fbfbfb;
+            border: 1px solid #eee;
+        }
+        
+        .message-avatar {
+            width: 45px;
+            height: 100%;
+            margin-right: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <center><h1>Hello , Welcome to my chat site ! {{request.user}}</h1></center>
+    <br>
+    {% if request.user.is_authenticated %}
+    <center> Logout the chat Page <a href="{% url 'logout-user' %}">Logout</a></center>
+    {% endif %}
+
+<section style="background-color: #eee;">
+    <div class="container py-5">
+        <div class="row d-flex justify-content-center">
+            <div class="col-md-8 col-lg-6 col-xl-4">
+                <div class="card" id="chat1" style="border-radius: 15px;">
+                    <div class="card-header d-flex justify-content-between align-items-center p-3 bg-info text-white border-bottom-0" style="border-top-left-radius: 15px; border-top-right-radius: 15px;">
+                        <i class="fas fa-angle-left"></i>
+                        <p class="mb-0 fw-bold">Live chat</p>
+                        <i class="fas fa-times"></i>
+                    </div>
+                    <div class="card-body" id="chat-messages">
+                        <!-- Existing chat messages will be dynamically inserted here -->
+                    </div>
+                    <div data-mdb-input-init class="form-outline" id="id_chat_item_container">
+                        <textarea class="form-control" id="id_message_send_input" rows="4"></textarea>
+                        <label class="form-label" for="textAreaExample">Type your message</label>
+                    </div>
+                    <button class="btn btn-primary" type="submit" id="id_message_send_button">Send Message</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    const chatSocket = new WebSocket("ws://" + window.location.host + "/");
+    chatSocket.onopen = function (e) {
+        console.log("The connection was setup successfully !");
+    };
+    chatSocket.onclose = function (e) {
+        console.log("Something unexpected happened !");
+    };
+    document.querySelector("#id_message_send_input").focus();
+    document.querySelector("#id_message_send_input").onkeyup = function (e) {
+        if (e.keyCode == 13) {
+            document.querySelector("#id_message_send_button").click();
+        }
+    };
+    document.querySelector("#id_message_send_button").onclick = function (e) {
+        var messageInput = document.querySelector("#id_message_send_input").value;
+        chatSocket.send(JSON.stringify({ message: messageInput, username: "{{request.user.username}}" }));
+    };
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        const messageContainer = document.createElement("div");
+        messageContainer.classList.add("message-container");
+        
+        const messageBubble = document.createElement("div");
+        messageBubble.classList.add("message-bubble");
+        
+        if (data.username === "{{request.user.username}}") {
+            messageContainer.classList.add("right");
+            messageBubble.classList.add("right");
+        } else {
+            messageContainer.classList.add("left");
+            messageBubble.classList.add("left");
+            const avatar = document.createElement("img");
+            avatar.src = "https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp";
+            avatar.classList.add("message-avatar");
+            messageContainer.appendChild(avatar);
+        }
+
+        messageBubble.innerHTML = `<strong>${data.username}</strong>: ${data.message}`;
+        messageContainer.appendChild(messageBubble);
+
+        document.querySelector("#chat-messages").appendChild(messageContainer);
+        document.querySelector("#id_message_send_input").value = "";
+    };
+</script>
+
+<!-- MDB -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.3.1/mdb.umd.min.js"></script>
+</body>
+</html>
